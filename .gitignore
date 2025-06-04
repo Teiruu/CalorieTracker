@@ -1,0 +1,5 @@
+﻿.idea
+calorietracker/__pycache__
+calorietracker/flask_session
+calorietracker/instance
+__pycache__

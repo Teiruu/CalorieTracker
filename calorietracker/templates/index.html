@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<div class="d-flex justify-content-center align-items-center vh-100">
+    <div class="card" style="width: 24rem;">
+<img src="{{ url_for('static', filename='calorielogo.png') }}"
+     class="card-img-top"
+     alt="Calorie Logo"
+     style="width: 100%; height: 160px; object-fit: cover;">
+        <div class="card-body text-center">
+            <h3 class="card-title">Calorie Tracker</h3>
+            <form action="{{ url_for('login') }}" method="get">
+                <button type="submit" class="btn btn-primary my-2">Log In</button>
+            </form>
+            <p>
+                Not registered?
+                <a href="register" style="text-decoration: none;">Create an account</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

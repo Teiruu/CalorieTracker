@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<header>
+    <h1>{{ session.username.capitalize() }}'s Dashboard</h1>
+</header>
+    <form action="{{ url_for('logout') }}" method="post">
+        <button type="submit" class="logout-btn">Log Out</button>
+    </form>
+
+{% endblock %}

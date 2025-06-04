@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .tab {
+        display: none;
+    }
+
+    input.invalid, select.invalid {
+        background-color: #dc3545 !important;
+    }
+
+    .step {
+        height: 12px;
+        width: 12px;
+        margin: 0 4px;
+        background-color: #6c757d;
+        border-radius: 50%;
+        display: inline-block;
+        opacity: 0.5;
+    }
+
+    .step.active {
+        opacity: 1;
+    }
+
+    .step.finish {
+        background-color: #0d6efd;
+    }
+
+    #regForm {
+        max-width: 500px;
+        margin: auto;
+        background-color: #212529;
+        padding: 30px;
+        border-radius: 10px;
+    }
+
+    .form-label {
+        display: block;
+        text-align: center;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .mb-3 {
+        text-align: center;
+    }
+
+    input.form-control, select.form-select {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    .btn {
+        padding: 6px 16px;
+        font-size: 0.9rem;
+    }
+</style>
+<div class="container mt-5">
+    <form id="regForm" method="POST" action="{{ url_for('register') }}">
+        {{ form.csrf_token }}
+        <h2 class="text-center mb-4">Register</h2>
+
+        <!-- Step 1 -->
+        <div class="tab">
+            <div class="mb-3">{{ form.username.label(class="form-label") }} {{ form.username(class="form-control") }}
+            </div>
+            <div class="mb-3">{{ form.password.label(class="form-label") }} {{ form.password(class="form-control") }}
+            </div>
+            <div class="mb-3">{{ form.password2.label(class="form-label") }} {{ form.password2(class="form-control")
+                }}
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="tab">
+            <div class="mb-3">{{ form.firstname.label(class="form-label") }} {{ form.firstname(class="form-control")
+                }}
+            </div>
+            <div class="mb-3">{{ form.lastname.label(class="form-label") }} {{ form.lastname(class="form-control") }}
+            </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="tab">
+            <div class="mb-3">{{ form.age.label(class="form-label") }} {{ form.age(class="form-control") }}</div>
+            <div class="mb-3">{{ form.gender.label(class="form-label") }} {{ form.gender(class="form-select") }}</div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="tab">
+            <div class="mb-3">{{ form.height.label(class="form-label") }} {{ form.height(class="form-control") }}</div>
+            <div class="mb-3">{{ form.weight.label(class="form-label") }} {{ form.weight(class="form-control") }}</div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="tab">
+            <div class="mb-3">{{ form.activity_level.label(class="form-label") }} {{
+                form.activity_level(class="form-select") }}
+            </div>
+            <div class="mb-3">{{ form.goal.label(class="form-label") }} {{ form.goal(class="form-select") }}</div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-secondary" id="prevBtn" onclick="nextPrev(-1)">Previous</button>
+            <button type="button" class="btn btn-primary" id="nextBtn" onclick="nextPrev(1)">Next</button>
+        </div>
+
+        <!-- Step Indicators -->
+        <div class="text-center mt-4">
+            <span class="step"></span>
+            <span class="step"></span>
+            <span class="step"></span>
+            <span class="step"></span>
+            <span class="step"></span>
+        </div>
+    </form>
+</div>
+<script>
+    let currentTab = 0;
+    showTab(currentTab);
+
+    function showTab(n) {
+        const tabs = document.getElementsByClassName("tab");
+        tabs[n].style.display = "block";
+
+        document.getElementById("prevBtn").style.display = n === 0 ? "none" : "inline";
+        document.getElementById("nextBtn").innerHTML = n === (tabs.length - 1) ? "Submit" : "Next";
+
+        fixStepIndicator(n);
+    }
+
+    function nextPrev(n) {
+        const tabs = document.getElementsByClassName("tab");
+
+        if (n === 1 && !validateForm()) return false;
+
+        tabs[currentTab].style.display = "none";
+        currentTab += n;
+
+        if (currentTab >= tabs.length) {
+            document.getElementById("regForm").submit();
+            return false;
+        }
+
+        showTab(currentTab);
+    }
+
+    function validateForm() {
+        const tabs = document.getElementsByClassName("tab");
+        const inputs = tabs[currentTab].querySelectorAll("input, select");
+        let valid = true;
+
+        inputs.forEach(input => {
+            if (input.value === "") {
+                input.classList.add("invalid");
+                valid = false;
+            } else {
+                input.classList.remove("invalid");
+            }
+        });
+
+        if (valid) {
+            document.getElementsByClassName("step")[currentTab].classList.add("finish");
+        }
+
+        return valid;
+    }
+
+    function fixStepIndicator(n) {
+        const steps = document.getElementsByClassName("step");
+        Array.from(steps).forEach(step => step.classList.remove("active"));
+        steps[n].classList.add("active");
+    }
+</script>
+
+{% endblock %}
