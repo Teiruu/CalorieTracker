@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .tab { display: none; }
+  input.invalid, select.invalid, textarea.invalid {
+    background-color: #dc3545 !important;
+  }
+  .step {
+    height: 12px; width:12px; margin:0 4px;
+    background:#6c757d; border-radius:50%; opacity:.5;
+    display:inline-block;
+  }
+  .step.active { opacity:1; }
+  .step.finish { background:#0d6efd; }
+  #foodForm {
+    max-width:600px; margin:auto;
+    background:#212529; padding:30px; border-radius:10px;
+  }
+  .form-label { display:block; text-align:center; font-weight:500; margin-bottom:.5rem; }
+  .mb-3 { text-align:center; }
+  input.form-control, select.form-select, textarea.form-control {
+    max-width:400px; margin:0 auto;
+  }
+  .btn { padding:6px 16px; font-size:.9rem; }
+</style>
+
+<div class="container mt-5">
+  <form id="foodForm" method="POST" action="{{ url_for('add_food_basic') }}">
+    {{ form.csrf_token }}
+    <h2 class="text-center mb-4">Add Food</h2>
+
+    <!-- Step 1 -->
+    <div class="tab">
+      <div class="mb-3">
+        {{ form.product.label(class="form-label") }}
+        {{ form.product(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.size.label(class="form-label") }}
+        {{ form.size(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.quantity.label(class="form-label") }}
+        {{ form.quantity(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.time_of_day.label(class="form-label") }}
+        {{ form.time_of_day(class="form-select") }}
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="tab">
+      <div class="mb-3">
+        {{ form.calories.label(class="form-label") }}
+        {{ form.calories(class="form-control") }}
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          {{ form.fat.label(class="form-label") }}
+          {{ form.fat(class="form-control") }}
+        </div>
+        <div class="col-md-6 mb-3">
+          {{ form.saturated.label(class="form-label") }}
+          {{ form.saturated(class="form-control") }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="tab">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          {{ form.carbs.label(class="form-label") }}
+          {{ form.carbs(class="form-control") }}
+        </div>
+        <div class="col-md-6 mb-3">
+          {{ form.sugars.label(class="form-label") }}
+          {{ form.sugars(class="form-control") }}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          {{ form.protein.label(class="form-label") }}
+          {{ form.protein(class="form-control") }}
+        </div>
+        <div class="col-md-6 mb-3">
+          {{ form.salt.label(class="form-label") }}
+          {{ form.salt(class="form-control") }}
+        </div>
+      </div>
+      <div class="mb-3">
+        {{ form.fiber.label(class="form-label") }}
+        {{ form.fiber(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.notes.label(class="form-label") }}
+        {{ form.notes(class="form-control", rows=3) }}
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div id="navButtons" class="d-flex justify-content-center mt-4">
+      <button type="button"
+              class="btn btn-secondary"
+              id="prevBtn"
+              onclick="nextPrev(-1)">Previous</button>
+      <button type="button"
+              class="btn btn-primary"
+              id="nextBtn"
+              onclick="nextPrev(1)">Next</button>
+    </div>
+
+    <!-- Steps -->
+    <div class="text-center mt-4">
+      <span class="step"></span>
+      <span class="step"></span>
+      <span class="step"></span>
+    </div>
+  </form>
+</div>
+
+<script>
+  let currentTab = 0;
+  document.addEventListener('DOMContentLoaded', () => {
+    showTab(0);
+    // Enter → next, except in textarea
+    document.getElementById("foodForm")
+      .addEventListener("keydown", e => {
+        if (e.key==="Enter" && e.target.tagName!=="TEXTAREA") {
+          e.preventDefault();
+          document.getElementById("nextBtn").click();
+        }
+      });
+  });
+
+  function showTab(n) {
+    const tabs = document.getElementsByClassName("tab");
+    Array.from(tabs).forEach(t=>t.style.display="none");
+    tabs[n].style.display="block";
+
+    const prev = document.getElementById("prevBtn"),
+          next = document.getElementById("nextBtn"),
+          nav  = document.getElementById("navButtons");
+
+    if (n===0) {
+      prev.style.display="none";
+      next.textContent="Next";
+      nav.classList.replace("justify-content-between","justify-content-center");
+    } else {
+      prev.style.display="inline-block";
+      next.textContent = n===tabs.length-1 ? "Submit" : "Next";
+      nav.classList.replace("justify-content-center","justify-content-between");
+    }
+    fixStepIndicator(n);
+  }
+
+  function nextPrev(n) {
+    const tabs = document.getElementsByClassName("tab");
+    // only validate fields marked required in HTML
+    if (n===1 && currentTab>0 && !validateTab()) return false;
+    tabs[currentTab].style.display="none";
+    currentTab += n;
+    if (currentTab >= tabs.length) {
+      document.getElementById("foodForm").submit();
+      return false;
+    }
+    showTab(currentTab);
+  }
+
+  function validateTab() {
+    // only check elements that have the required attribute
+    const sel = "input[required], select[required], textarea[required]";
+    const inputs = document
+      .getElementsByClassName("tab")[currentTab]
+      .querySelectorAll(sel);
+    let valid = true;
+    inputs.forEach(i => {
+      if (!i.value.trim()) {
+        i.classList.add("invalid");
+        valid = false;
+      } else {
+        i.classList.remove("invalid");
+      }
+    });
+    if (valid) {
+      document.getElementsByClassName("step")[currentTab]
+              .classList.add("finish");
+    }
+    return valid;
+  }
+
+  function fixStepIndicator(n) {
+    const steps = document.getElementsByClassName("step");
+    Array.from(steps).forEach(s => s.classList.remove("active"));
+    steps[n].classList.add("active");
+  }
+</script>
+{% endblock %}

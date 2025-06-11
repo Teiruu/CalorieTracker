@@ -102,9 +102,19 @@
         </div>
 
         <!-- Navigation -->
-        <div class="d-flex justify-content-between mt-4">
-            <button type="button" class="btn btn-secondary" id="prevBtn" onclick="nextPrev(-1)">Previous</button>
-            <button type="button" class="btn btn-primary" id="nextBtn" onclick="nextPrev(1)">Next</button>
+        <div id="navButtons" class="d-flex justify-content-between mt-4">
+            <button type="button"
+                    class="btn btn-secondary"
+                    id="prevBtn"
+                    onclick="nextPrev(-1)">
+                Previous
+            </button>
+            <button type="button"
+                    class="btn btn-primary"
+                    id="nextBtn"
+                    onclick="nextPrev(1)">
+                Next
+            </button>
         </div>
 
         <!-- Step Indicators -->
@@ -118,61 +128,91 @@
     </form>
 </div>
 <script>
-    let currentTab = 0;
+  let currentTab = 0;
+
+  // Once the DOM is ready, show the first tab and wire up the Enter key
+  document.addEventListener('DOMContentLoaded', function() {
     showTab(currentTab);
 
-    function showTab(n) {
-        const tabs = document.getElementsByClassName("tab");
-        tabs[n].style.display = "block";
+    const form = document.getElementById("regForm");
+    form.addEventListener("keydown", function(e) {
+      // if the user hits Enter _and_ they’re not in a textarea…
+      if (e.key === "Enter" && e.target.tagName.toLowerCase() !== "textarea") {
+        e.preventDefault();                   // stop any native submit/behaviour
+        document.getElementById("nextBtn").click();  // fire the Next button
+      }
+    });
+  });
 
-        document.getElementById("prevBtn").style.display = n === 0 ? "none" : "inline";
-        document.getElementById("nextBtn").innerHTML = n === (tabs.length - 1) ? "Submit" : "Next";
+  function showTab(n) {
+    const tabs = document.getElementsByClassName("tab");
+    tabs[n].style.display = "block";
 
-        fixStepIndicator(n);
+    const prev = document.getElementById("prevBtn");
+    const next = document.getElementById("nextBtn");
+    const nav  = document.getElementById("navButtons");
+
+    // hide “Previous” on first step
+    prev.style.display = n === 0 ? "none" : "inline-block";
+    // swap Next ↔ Submit on last step
+    next.innerHTML    = n === (tabs.length - 1) ? "Submit" : "Next";
+
+    // center the lone button on the first step
+    if (n === 0) {
+      nav.classList.remove("justify-content-between");
+      nav.classList.add("justify-content-center");
+    } else {
+      nav.classList.remove("justify-content-center");
+      nav.classList.add("justify-content-between");
     }
 
-    function nextPrev(n) {
-        const tabs = document.getElementsByClassName("tab");
+    fixStepIndicator(n);
+  }
 
-        if (n === 1 && !validateForm()) return false;
+  function nextPrev(n) {
+    const tabs = document.getElementsByClassName("tab");
 
-        tabs[currentTab].style.display = "none";
-        currentTab += n;
+    // if moving forward, validate
+    if (n === 1 && !validateForm()) return false;
 
-        if (currentTab >= tabs.length) {
-            document.getElementById("regForm").submit();
-            return false;
-        }
+    // hide current tab
+    tabs[currentTab].style.display = "none";
+    currentTab += n;
 
-        showTab(currentTab);
+    // if we’ve gone past the last tab, submit the form
+    if (currentTab >= tabs.length) {
+      document.getElementById("regForm").submit();
+      return false;
     }
 
-    function validateForm() {
-        const tabs = document.getElementsByClassName("tab");
-        const inputs = tabs[currentTab].querySelectorAll("input, select");
-        let valid = true;
+    showTab(currentTab);
+  }
 
-        inputs.forEach(input => {
-            if (input.value === "") {
-                input.classList.add("invalid");
-                valid = false;
-            } else {
-                input.classList.remove("invalid");
-            }
-        });
+  function validateForm() {
+    const tabs   = document.getElementsByClassName("tab");
+    const inputs = tabs[currentTab].querySelectorAll("input, select");
+    let valid    = true;
 
-        if (valid) {
-            document.getElementsByClassName("step")[currentTab].classList.add("finish");
-        }
+    inputs.forEach(input => {
+      if (input.value === "") {
+        input.classList.add("invalid");
+        valid = false;
+      } else {
+        input.classList.remove("invalid");
+      }
+    });
 
-        return valid;
+    if (valid) {
+      document.getElementsByClassName("step")[currentTab].classList.add("finish");
     }
+    return valid;
+  }
 
-    function fixStepIndicator(n) {
-        const steps = document.getElementsByClassName("step");
-        Array.from(steps).forEach(step => step.classList.remove("active"));
-        steps[n].classList.add("active");
-    }
+  function fixStepIndicator(n) {
+    const steps = document.getElementsByClassName("step");
+    Array.from(steps).forEach(step => step.classList.remove("active"));
+    steps[n].classList.add("active");
+  }
 </script>
 
 {% endblock %}

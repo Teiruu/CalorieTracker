@@ -1,10 +1,155 @@
 {% extends "base.html" %}
 {% block content %}
-<header>
-    <h1>{{ session.username.capitalize() }}'s Dashboard</h1>
-</header>
-    <form action="{{ url_for('logout') }}" method="post">
-        <button type="submit" class="logout-btn">Log Out</button>
+<div class="container mt-4">
+    <h1 class="text-center">{{ session.username.capitalize() }}'s Dashboard</h1>
+
+    <form action="{{ url_for('logout') }}" method="post" class="mb-4">
+        <button class="btn btn-secondary">Logout</button>
     </form>
 
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-header">Daily Goal</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ calorie_goal }} kcal</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-header">Food Consumed</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ consumed }} kcal</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-header">Exercise Calories</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ exercise }} kcal</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-header">Calories Remaining</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ remaining }} kcal</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Today's Food Logs</h3>
+        <div>
+            <a href="{{ url_for('add_exercise') }}" class="btn btn-outline-success me-2">+ Add Exercise</a>
+            <a href="{{ url_for('choose_food') }}" class="btn btn-outline-primary">+ Add Food</a>
+        </div>
+    </div>
+
+    {# Four separate tables for each time of day #}
+    {% for tod in ["Breakfast","Lunch","Dinner","Snack"] %}
+    <h4 class="mt-4">{{ tod }}</h4>
+    <table class="table table-bordered table-sm">
+        <colgroup>
+            <col style="width:35%">
+            {% for i in range(8) %}
+            <col style="width:7.5%">
+            {% endfor %}
+            <col style="width:10%">
+            {# Action column #}
+        </colgroup>
+        <thead class="table-light">
+        <tr>
+            <th class="text-center">Food</th>
+            <th class="text-center">Cal</th>
+            <th class="text-center">Fat</th>
+            <th class="text-center">Sat</th>
+            <th class="text-center">Carbs</th>
+            <th class="text-center">Sugars</th>
+            <th class="text-center">Protein</th>
+            <th class="text-center">Salt</th>
+            <th class="text-center">Fiber</th>
+            <th class="text-center">Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% set items = calorie_logs
+        | selectattr("time_of_day.value","equalto", tod)
+        | list %}
+        {% if items %}
+        {% for log in items %}
+        <tr>
+            <td>{{ log.product }}</td>
+            <td class="text-center">{{ log.calories }}</td>
+            <td class="text-center">{{ log.fat or "-" }}</td>
+            <td class="text-center">{{ log.saturated or "-" }}</td>
+            <td class="text-center">{{ log.carbs or "-" }}</td>
+            <td class="text-center">{{ log.sugars or "-" }}</td>
+            <td class="text-center">{{ log.protein or "-" }}</td>
+            <td class="text-center">{{ log.salt or "-" }}</td>
+            <td class="text-center">{{ log.fiber or "-" }}</td>
+            <td class="text-center">
+                <form method="post"
+                      action="{{ url_for('delete_food', log_id=log.id) }}"
+                      style="display:inline;">
+                    <button type="submit"
+                            class="btn btn-sm btn-outline-danger">
+                        Delete
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+            <td colspan="10" class="text-center">No {{ tod }} entries</td>
+        </tr>
+        {% endif %}
+        </tbody>
+    </table>
+    {% endfor %}
+
+    {# Exercise table #}
+    <h3 class="mt-5">Today's Exercise</h3>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>Time</th>
+            <th>Calories Burned</th>
+            <th>Notes</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% if exercise_logs %}
+        {% for ex in exercise_logs %}
+        <tr>
+            <td>{{ ex.created_at.strftime("%H:%M") }}</td>
+            <td>{{ ex.calories }}</td>
+            <td>{{ ex.notes or "" }}</td>
+            <td>
+                <form method="post"
+                      action="{{ url_for('delete_exercise', log_id=ex.id) }}"
+                      style="display:inline;">
+                    <button type="submit"
+                            class="btn btn-sm btn-outline-danger">
+                        Delete
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+            <td colspan="4" class="text-center">No exercise logged today</td>
+        </tr>
+        {% endif %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
+```

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Log Exercise</h2>
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      {{ form.calories.label(class="form-label") }}
+      {{ form.calories(class="form-control", placeholder="e.g. 200") }}
+    </div>
+    <div class="mb-3">
+      {{ form.notes.label(class="form-label") }}
+      {{ form.notes(class="form-control", rows=3) }}
+    </div>
+    {{ form.submit(class="btn btn-success") }}
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">Cancel</a>
+  </form>
+</div>
+{% endblock %}

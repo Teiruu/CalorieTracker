@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 text-center">
+  <h2>How would you like to add your food?</h2>
+  <div class="mt-4 d-flex justify-content-center gap-3">
+    <a href="{{ url_for('add_food_basic') }}" class="btn btn-primary btn-lg">
+      Basic Input
+    </a>
+    <a href="{{ url_for('find_food') }}" class="btn btn-outline-secondary btn-lg">
+      Search Database
+    </a>
+  </div>
+</div>
+{% endblock %}

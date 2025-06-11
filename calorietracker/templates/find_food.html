@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="text-center mb-4">Search Food Database</h2>
+
+  <form id="searchForm" method="post" class="d-flex mb-4 align-items-start">
+    {{ form.csrf_token }}
+
+    <!-- Barcode input -->
+    <div class="me-2" style="width:150px;">
+      {{ form.code_lookup(class="form-control", placeholder="Barcode") }}
+    </div>
+
+    <!-- Name input + datalist -->
+    <div class="flex-grow-1 me-2">
+      <input
+        type="text"
+        id="nameInput"
+        name="name_lookup"
+        class="form-control"
+        placeholder="Start typing a product name…"
+        list="productSuggestions">
+      <datalist id="productSuggestions"></datalist>
+    </div>
+
+    {{ form.submit(class="btn btn-primary me-2") }}
+    <a href="{{ url_for('add_food_basic') }}" class="btn btn-link">
+      Manual entry
+    </a>
+  </form>
+
+  {% if results is not none %}
+    {% if results %}
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Code</th><th>Name</th><th>Size</th><th>Calories</th><th>Fat</th>
+            <th>Sat Fat</th><th>Carbs</th><th>Sugars</th><th>Protein</th><th>Salt</th><th>Fiber</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in results %}
+          <tr>
+            <td>{{ p.product_code }}</td>
+            <td>{{ p.product_name }}</td>
+            <td>{{ p.product_size }}</td>
+            <td>{{ p.calories_kcal }}</td>
+            <td>{{ p.fat_g }}</td>
+            <td>{{ p.saturated_fat_g }}</td>
+            <td>{{ p.carbohydrates_g }}</td>
+            <td>{{ p.sugars_g }}</td>
+            <td>{{ p.protein_g }}</td>
+            <td>{{ p.salt_g }}</td>
+            <td>{{ p.fiber_g }}</td>
+            <td>
+              <a href="{{ url_for('add_food_basic', prefill=p.id) }}"
+                 class="btn btn-sm btn-success">
+                Use
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="alert alert-warning">
+        No products matched your search.
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const nameInput = document.getElementById('nameInput');
+  const dataList  = document.getElementById('productSuggestions');
+  let timer;
+
+  nameInput.addEventListener('input', () => {
+    const q = nameInput.value.trim();
+    clearTimeout(timer);
+    if (!q) return dataList.innerHTML = '';
+
+    timer = setTimeout(() => {
+      fetch(`/api/products?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(list => {
+          dataList.innerHTML = '';
+          list.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            dataList.appendChild(opt);
+          });
+        });
+    }, 250);
+  });
+});
+</script>
+{% endblock %}
