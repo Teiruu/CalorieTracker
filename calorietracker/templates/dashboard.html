@@ -42,11 +42,37 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Today's Food Logs</h3>
-        <div>
-            <a href="{{ url_for('add_exercise') }}" class="btn btn-outline-success me-2">+ Add Exercise</a>
-            <a href="{{ url_for('choose_food') }}" class="btn btn-outline-primary">+ Add Food</a>
+    <div class="mb-4">
+        <!-- Arrows + date -->
+        <div class="text-center mb-2">
+            <a
+                    href="{{ url_for('dashboard', date=prev_date.isoformat()) }}"
+                    class="text-decoration-none fs-3 text-secondary mx-3"
+                    title="Previous day"
+            >&larr;</a>
+
+            <span class="fs-4">
+      {{ selected_date.strftime('%b %d, %Y') }}
+    </span>
+
+            <a
+                    href="{{ url_for('dashboard', date=next_date.isoformat()) }}"
+                    class="text-decoration-none fs-3 text-secondary mx-3"
+                    title="Next day"
+            >&rarr;</a>
+        </div>
+
+        <!-- Add Exercise/Food Buttons -->
+        <div class="text-center">
+            <a
+                    href="{{ url_for('add_exercise', date=selected_date.isoformat()) }}"
+                    class="btn btn-outline-success me-2"
+            >+ Add Exercise</a>
+
+            <a
+                    href="{{ url_for('choose_food', date=selected_date.isoformat()) }}"
+                    class="btn btn-outline-primary"
+            >+ Add Food</a>
         </div>
     </div>
 
@@ -152,4 +178,4 @@
     </table>
 </div>
 {% endblock %}
-```
+

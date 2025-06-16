@@ -4,7 +4,7 @@ from flask import Flask, render_template, redirect, request, url_for, session, f
 from flask_session import Session
 from model.base import db, Base
 from model.models import Register, User, CalorieLog, CalorieLogForm, LoginForm, ExerciseLog, ExerciseLogForm, AddFoodForm, FindFoodForm, TimeOfDay, ProductList
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import func
 import pytz
 
@@ -56,11 +56,21 @@ def calculate_daily_calorie_goal(user):
 def index():
     return render_template("index.html")
 
-
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
+    # parse date from query-string, or default to today
+    date_str = request.args.get('date')
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else date.today()
+    except ValueError:
+        selected_date = date.today()
+
+    # for prev/next links
+    prev_date = selected_date - timedelta(days=1)
+    next_date = selected_date + timedelta(days=1)
 
     user_id = session['user_id']
     user = db.session.get(User, user_id)
@@ -68,47 +78,38 @@ def dashboard():
         session.clear()
         return redirect(url_for('login'))
 
-    today = date.today()
-
-    # total food calories today
+    # use selected_date instead of today
     consumed = (
         db.session.query(func.coalesce(func.sum(CalorieLog.calories), 0))
           .filter(
             CalorieLog.user_id == user_id,
-            func.date(CalorieLog.created_at) == today
+            func.date(CalorieLog.created_at) == selected_date
           )
           .scalar()
     )
-
-    # total exercise calories today
     exercise = (
         db.session.query(func.coalesce(func.sum(ExerciseLog.calories), 0))
           .filter(
             ExerciseLog.user_id == user_id,
-            func.date(ExerciseLog.created_at) == today
+            func.date(ExerciseLog.created_at) == selected_date
           )
           .scalar()
     )
-
-    remaining = user.calorie_goal - consumed + exercise
-
-    # **ALL** today's food entries
+    # …
     calorie_logs = (
         db.session.query(CalorieLog)
           .filter(
             CalorieLog.user_id == user_id,
-            func.date(CalorieLog.created_at) == today
+            func.date(CalorieLog.created_at) == selected_date
           )
           .order_by(CalorieLog.created_at.desc())
           .all()
     )
-
-    # **ALL** today's exercise entries
     exercise_logs = (
         db.session.query(ExerciseLog)
           .filter(
             ExerciseLog.user_id == user_id,
-            func.date(ExerciseLog.created_at) == today
+            func.date(ExerciseLog.created_at) == selected_date
           )
           .order_by(ExerciseLog.created_at.desc())
           .all()
@@ -119,9 +120,12 @@ def dashboard():
         calorie_goal=user.calorie_goal,
         consumed=consumed,
         exercise=exercise,
-        remaining=remaining,
+        remaining=user.calorie_goal - consumed + exercise,
         calorie_logs=calorie_logs,
-        exercise_logs=exercise_logs
+        exercise_logs=exercise_logs,
+        selected_date=selected_date,
+        prev_date=prev_date,
+        next_date=next_date
     )
 @app.route('/exercise', methods=['GET', 'POST'])
 def add_exercise():
