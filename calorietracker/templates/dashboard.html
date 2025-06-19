@@ -1,13 +1,7 @@
-{% extends "base.html" %}
+{% extends "logged_in_base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h1 class="text-center">{{ session.username.capitalize() }}'s Dashboard</h1>
-
-    <form action="{{ url_for('logout') }}" method="post" class="mb-4">
-        <button class="btn btn-secondary">Logout</button>
-    </form>
-
-    <div class="row mb-4">
+<div class="row mb-4">
         <div class="col-md-3">
             <div class="card text-white bg-primary">
                 <div class="card-header">Daily Goal</div>
@@ -60,6 +54,16 @@
                     class="text-decoration-none fs-3 text-secondary mx-3"
                     title="Next day"
             >&rarr;</a>
+            <div>
+                {% if selected_date != todays_date %}
+                <a
+                        href="{{ url_for('dashboard', date=todays_date.isoformat()) }}"
+                        class="text-decoration-none fs-3 text-primary-emphasis mx-3"
+                        title="Next day"
+                >Today</a>
+                {% endif %}
+            </div>
+
         </div>
 
         <!-- Add Exercise/Food Buttons -->

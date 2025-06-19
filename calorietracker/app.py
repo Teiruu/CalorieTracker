@@ -71,6 +71,7 @@ def dashboard():
     # for prev/next links
     prev_date = selected_date - timedelta(days=1)
     next_date = selected_date + timedelta(days=1)
+    todays_date = date.today()
 
     user_id = session['user_id']
     user = db.session.get(User, user_id)
@@ -125,7 +126,8 @@ def dashboard():
         exercise_logs=exercise_logs,
         selected_date=selected_date,
         prev_date=prev_date,
-        next_date=next_date
+        next_date=next_date,
+        todays_date=todays_date
     )
 @app.route('/exercise', methods=['GET', 'POST'])
 def add_exercise():
@@ -197,7 +199,7 @@ def register():
     return render_template('register.html', form=form)
 
 
-@app.route("/logout", methods=['POST'])
+@app.route("/logout", methods=['GET'])
 def logout():
     session.clear()
     return redirect(url_for('index'))
