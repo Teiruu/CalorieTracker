@@ -329,6 +329,33 @@ def delete_exercise(log_id):
     flash('Exercise entry deleted', 'warning')
     return redirect(url_for('dashboard'))
 
+@app.route('/weekly')
+def weekly():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    dt = datetime.now().date()
+    start = dt - timedelta(days=dt.weekday())
+    end = start + timedelta(days=6)
+    calorielog = db.session.execute(db.select(CalorieLog)
+                                     .filter(CalorieLog.created_at >= start)
+                                     .filter(CalorieLog.created_at <= end)
+                                     .filter_by(user_id=session['user_id'])
+                                     ).all()
+    #TODO for loop over calorie log, for all the calories in a day add them up and make a variable
+
+
+
+
+    exerciselog = db.session.execute(db.select(ExerciseLog)
+                                     .filter(ExerciseLog.created_at >= start)
+                                     .filter(ExerciseLog.created_at <= end)
+                                     .filter_by(user_id=session['user_id'])
+                                     ).all()
+    usergoal = db.session.execute(db.select(User)
+                                     .filter_by(id=session['user_id'])).scalar_one()
+
+    return render_template('weekly.html', start=start, end=end, calorielog=calorielog, exerciselog=exerciselog, usergoal=usergoal)
+
 if __name__ == "__main__":
     app()
 
