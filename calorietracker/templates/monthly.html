@@ -1,0 +1,52 @@
+{% extends "logged_in_base.html" %}
+{% block content %}
+<div class="container my-4 text-center">
+  <div class="d-flex justify-content-center align-items-center mb-2">
+    <a href="{{ url_for('monthly', start=prev_start) }}" class="btn btn-light btn-sm me-3">&larr;</a>
+    <h2 class="mb-0">Monthly Calories</h2>
+    <a href="{{ url_for('monthly', start=next_start) }}" class="btn btn-light btn-sm ms-3">&rarr;</a>
+  </div>
+
+  <div class="text-secondary mb-1">{{ human_label }}</div>
+
+  <div class="text-center mb-3">
+    <strong>Averages:</strong>
+      {{ avg_in }} kcal/day in,
+      {{ avg_out }} kcal/day out
+  </div>
+
+  <canvas id="monthlyChart" height="100"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ labels|tojson }},
+      datasets: [
+        {
+          label: 'Calories In',
+          data: {{ in_data|tojson }},
+          backgroundColor: 'rgba(75,192,192,0.5)'
+        },
+        {
+          label: 'Calories Out',
+          data: {{ out_data|tojson }},
+          backgroundColor: 'rgba(192,75,75,0.5)'
+        }
+      ]
+    },
+    options: {
+      scales: {
+        x: {
+          ticks: { maxRotation: 90, minRotation: 45 }
+        },
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

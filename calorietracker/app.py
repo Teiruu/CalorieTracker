@@ -1,5 +1,5 @@
 from collections.abc import async_generator
-
+import calendar
 from flask import Flask, render_template, redirect, request, url_for, session, flash, jsonify, abort
 from flask_session import Session
 from model.base import db, Base
@@ -51,6 +51,18 @@ def calculate_daily_calorie_goal(user):
     else:
         return int(tdee)
 
+def calculate_tdee(user):
+    """Returns the user's daily energy expenditure (BMR × activity), before any +/− goal adjustment."""
+    # 1) BMR
+    if user.gender == 'male':
+        bmr = 10 * float(user.weight) + 6.25 * user.height - 5 * user.age + 5
+    else:
+        bmr = 10 * float(user.weight) + 6.25 * user.height - 5 * user.age - 161
+
+    # 2) activity multiplier
+    mult = {'none': 1.2, 'some': 1.375, 'alot': 1.55}[user.activity_level]
+
+    return int(bmr * mult)
 
 @app.route("/")
 def index():
@@ -333,28 +345,144 @@ def delete_exercise(log_id):
 def weekly():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    dt = datetime.now().date()
-    start = dt - timedelta(days=dt.weekday())
-    end = start + timedelta(days=6)
-    calorielog = db.session.execute(db.select(CalorieLog)
-                                     .filter(CalorieLog.created_at >= start)
-                                     .filter(CalorieLog.created_at <= end)
-                                     .filter_by(user_id=session['user_id'])
-                                     ).all()
-    #TODO for loop over calorie log, for all the calories in a day add them up and make a variable
 
+    # 1) figure out the “start” of the week
+    q = request.args.get('start')
+    if q:
+        try:
+            today = datetime.strptime(q, '%Y-%m-%d').date()
+        except ValueError:
+            today = date.today()
+    else:
+        today = date.today()
 
+    # Monday … Sunday
+    start = today - timedelta(days=today.weekday())
+    end   = start + timedelta(days=6)
+    human_label = f"{start.strftime('%b %d, %Y')} – {end.strftime('%b %d, %Y')}"
 
+    # 2) build the days & labels
+    days   = [start + timedelta(days=i) for i in range(7)]
+    labels = [d.strftime('%a') for d in days]
 
-    exerciselog = db.session.execute(db.select(ExerciseLog)
-                                     .filter(ExerciseLog.created_at >= start)
-                                     .filter(ExerciseLog.created_at <= end)
-                                     .filter_by(user_id=session['user_id'])
-                                     ).all()
-    usergoal = db.session.execute(db.select(User)
-                                     .filter_by(id=session['user_id'])).scalar_one()
+    # 3) fetch user & baseline burn
+    user     = db.session.get(User, session['user_id'])
+    baseline = calculate_tdee(user)
 
-    return render_template('weekly.html', start=start, end=end, calorielog=calorielog, exerciselog=exerciselog, usergoal=usergoal)
+    # 4) collect data + totals
+    in_data = []
+    out_data = []
+    total_in = total_out = 0
+
+    for d in days:
+        c_in = db.session.query(func.coalesce(func.sum(CalorieLog.calories), 0)) \
+                 .filter(CalorieLog.user_id==user.id,
+                         func.date(CalorieLog.created_at)==d) \
+                 .scalar()
+
+        logged_ex = db.session.query(func.coalesce(func.sum(ExerciseLog.calories), 0)) \
+                    .filter(ExerciseLog.user_id==user.id,
+                            func.date(ExerciseLog.created_at)==d) \
+                    .scalar()
+
+        c_out = baseline + logged_ex
+
+        in_data.append(c_in)
+        out_data.append(c_out)
+
+        total_in  += c_in
+        total_out += c_out
+
+    avg_in  = round(total_in  / len(days))
+    avg_out = round(total_out / len(days))
+
+    # 5) nav links
+    prev_start = (start - timedelta(days=7)).isoformat()
+    next_start = (start + timedelta(days=7)).isoformat()
+
+    return render_template(
+        'weekly.html',
+        labels=labels,
+        in_data=in_data,
+        out_data=out_data,
+        human_label=human_label,
+        prev_start=prev_start,
+        next_start=next_start,
+        total_in=total_in,
+        total_out=total_out,
+        avg_in=avg_in,
+        avg_out=avg_out
+    )
+
+@app.route('/monthly')
+def monthly():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # 1) first-of-month from ?start or default to current month
+    q = request.args.get('start')
+    if q:
+        try:
+            first = datetime.strptime(q, '%Y-%m-%d').date()
+        except ValueError:
+            first = date.today().replace(day=1)
+    else:
+        today = date.today()
+        first = date(today.year, today.month, 1)
+
+    # 2) days & labels
+    last_day = calendar.monthrange(first.year, first.month)[1]
+    days     = [first + timedelta(days=i) for i in range(last_day)]
+    labels   = [f"{d.strftime('%b')} {d.day}" for d in days]
+
+    # 3) fetch user & baseline burn
+    user     = db.session.get(User, session['user_id'])
+    baseline = calculate_tdee(user)
+
+    # 4) collect data + totals
+    in_data  = []
+    out_data = []
+    total_in = total_out = 0
+
+    for d in days:
+        c_in = db.session.query(func.coalesce(func.sum(CalorieLog.calories), 0)) \
+                   .filter(CalorieLog.user_id==user.id,
+                           func.date(CalorieLog.created_at)==d) \
+                   .scalar()
+
+        logged_ex = db.session.query(func.coalesce(func.sum(ExerciseLog.calories), 0)) \
+                      .filter(ExerciseLog.user_id==user.id,
+                              func.date(ExerciseLog.created_at)==d) \
+                      .scalar()
+
+        c_out = baseline + logged_ex
+
+        in_data.append(c_in)
+        out_data.append(c_out)
+
+        total_in  += c_in
+        total_out += c_out
+
+    avg_in  = round(total_in  / len(days))
+    avg_out = round(total_out / len(days))
+
+    # 5) prev/next month
+    prev_month = (first.replace(day=1) - timedelta(days=1)).replace(day=1)
+    next_month = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
+
+    return render_template(
+        'monthly.html',
+        labels=labels,
+        in_data=in_data,
+        out_data=out_data,
+        human_label=first.strftime('%B %Y'),
+        prev_start=prev_month.isoformat(),
+        next_start=next_month.isoformat(),
+        total_in=total_in,
+        total_out=total_out,
+        avg_in=avg_in,
+        avg_out=avg_out
+    )
 
 if __name__ == "__main__":
     app()
